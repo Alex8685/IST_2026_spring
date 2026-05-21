@@ -84,7 +84,7 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
     grad_norm_sq = np.dot(g_k, g_k)
     initial_grad_norm_sq = grad_norm_sq
 
-    if np.isinf(grad_norm_sq) or np.any(np.isnan(g_k)) or np.any(np.isinf(g_k)) or np.any(np.isnan(x_k)) or np.any(np.isinf(x_k)):
+    if np.isinf(grad_norm_sq) or not np.all(np.isfinite(g_k)) or not np.all(np.isfinite(x_k)):
         if display: print("Iter 0: computational_error")
         return x_k, 'computational_error', history
     if initial_grad_norm_sq == 0:
@@ -106,7 +106,7 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
         print(f"Iter 0: func={oracle.func(x_k):.6f}, grad_norm={np.sqrt(grad_norm_sq):.6f}")
 
     for k in range(max_iter):
-        if np.any(np.isinf(x_k)) or np.any(np.isnan(x_k)) or np.any(np.isinf(g_k)) or np.any(np.isnan(g_k)):
+        if not np.all(np.isfinite(x_k)) or not np.all(np.isfinite(g_k)):
             return x_k, 'computational_error', history
         if grad_norm_sq <= tolerance * initial_grad_norm_sq:
             break
@@ -120,7 +120,7 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
         g_k = oracle.grad(x_k)
         grad_norm_sq = np.dot(g_k, g_k)
         
-        if np.isinf(grad_norm_sq) or np.any(np.isnan(x_k)) or np.any(np.isinf(x_k)) or np.any(np.isnan(g_k)) or np.any(np.isinf(g_k)):
+        if np.isinf(grad_norm_sq) or not np.all(np.isfinite(x_k)) or not np.all(np.isfinite(g_k)):
             return x_k, 'computational_error', history
             
         if trace:
@@ -144,7 +144,7 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
     grad_norm_sq = np.dot(g_k, g_k)
     initial_grad_norm_sq = grad_norm_sq
 
-    if np.isinf(grad_norm_sq) or np.any(np.isnan(g_k)) or np.any(np.isinf(g_k)) or np.any(np.isnan(x_k)) or np.any(np.isinf(x_k)):
+    if np.isinf(grad_norm_sq) or not np.all(np.isfinite(g_k)) or not np.all(np.isfinite(x_k)):
         if display: print("Iter 0: computational_error")
         return x_k, 'computational_error', history
     if initial_grad_norm_sq == 0:
@@ -166,16 +166,24 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
         print(f"Iter 0: func={oracle.func(x_k):.6f}, grad_norm={np.sqrt(grad_norm_sq):.6f}")
 
     for k in range(max_iter):
-        if np.any(np.isinf(x_k)) or np.any(np.isnan(x_k)) or np.any(np.isinf(g_k)) or np.any(np.isnan(g_k)):
+        if not np.all(np.isfinite(x_k)) or not np.all(np.isfinite(g_k)):
             return x_k, 'computational_error', history
         if grad_norm_sq <= tolerance * initial_grad_norm_sq:
             break
             
         try:
             H_k = oracle.hess(x_k)
+            if not np.all(np.isfinite(H_k)):
+                return x_k, 'computational_error', history
             cho = cho_factor(H_k)
             d_k = -cho_solve(cho, g_k)
+            if not np.all(np.isfinite(d_k)):
+                return x_k, 'computational_error', history
         except LinAlgError:
+            # Если гессиан не положительно определён.
+            # Проверяем, вызвано ли это расходимостью (значения ушли в inf/nan или гессиан схлопнулся в 0)
+            if not np.all(np.isfinite(x_k)) or not np.all(np.isfinite(g_k)) or np.all(H_k == 0.0):
+                return x_k, 'computational_error', history
             return x_k, 'newton_direction_error', history
 
         alpha = line_search_tool.line_search(oracle, x_k, d_k)
@@ -186,7 +194,7 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
         g_k = oracle.grad(x_k)
         grad_norm_sq = np.dot(g_k, g_k)
         
-        if np.isinf(grad_norm_sq) or np.any(np.isnan(x_k)) or np.any(np.isinf(x_k)) or np.any(np.isnan(g_k)) or np.any(np.isinf(g_k)):
+        if np.isinf(grad_norm_sq) or not np.all(np.isfinite(x_k)) or not np.all(np.isfinite(g_k)):
             return x_k, 'computational_error', history
 
         if trace:

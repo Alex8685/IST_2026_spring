@@ -180,8 +180,6 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
             if not np.all(np.isfinite(d_k)):
                 return x_k, 'computational_error', history
         except LinAlgError:
-            # Если гессиан не положительно определён.
-            # Проверяем, вызвано ли это расходимостью (значения ушли в inf/nan или гессиан схлопнулся в 0)
             if not np.all(np.isfinite(x_k)) or not np.all(np.isfinite(g_k)) or np.all(H_k == 0.0):
                 return x_k, 'computational_error', history
             return x_k, 'newton_direction_error', history
